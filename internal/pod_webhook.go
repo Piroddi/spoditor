@@ -3,8 +3,9 @@ package internal
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/piroddi/spoditor/internal/annotation"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,16 +22,21 @@ var log = logf.Log.WithName("pod_webhook")
 // PodArgumentor receives the admission request from API server when a Pod resource
 // is created or updated
 type PodArgumentor struct {
-	decoder   *admission.Decoder
+	decoder   admission.Decoder
 	SSPodId   SSPodIdentifier
 	handlers  []annotation.Handler
 	Collector annotation.QualifiedAnnotationCollector
+	Scheme    *runtime.Scheme
 }
 
 func (r *PodArgumentor) Handle(c context.Context, request admission.Request) admission.Response {
 	pod := &v1.Pod{}
-	err := r.decoder.Decode(request, pod)
-	if err != nil {
+
+	if r.decoder == nil {
+		r.decoder = admission.NewDecoder(r.Scheme)
+	}
+
+	if err := r.decoder.Decode(request, pod); err != nil {
 		return admission.Allowed(fmt.Sprintf("failed to decode the input pod %v", err))
 	}
 
@@ -61,17 +67,11 @@ func (r *PodArgumentor) Handle(c context.Context, request admission.Request) adm
 	return admission.PatchResponseFromRaw(request.Object.Raw, marshaledPod)
 }
 
-func (r *PodArgumentor) InjectDecoder(decoder *admission.Decoder) error {
-	r.decoder = decoder
-	return nil
-}
-
 func (r *PodArgumentor) SetupWebhookWithManager(mgr ctrl.Manager) {
 	log.Info("registering argumentor webhook")
-	mgr.GetWebhookServer().
-		Register("/mutate-v1-pod", &webhook.Admission{
-			Handler: r,
-		})
+	mgr.GetWebhookServer().Register("/mutate-v1-pod", &webhook.Admission{
+		Handler: r,
+	})
 }
 
 func (r *PodArgumentor) Register(h annotation.Handler) {

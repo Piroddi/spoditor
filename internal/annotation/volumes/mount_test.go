@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/spoditor/spoditor/internal/annotation"
+	"github.com/piroddi/spoditor/internal/annotation"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 )

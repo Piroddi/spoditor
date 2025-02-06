@@ -1,7 +1,7 @@
 domain: spoditor.io
 layout: go.kubebuilder.io/v3
 projectName: spoditor
-repo: github.com/spoditor/spoditor
+repo: github.com/piroddi/spoditor
 resources:
 version: 3-alpha
 plugins:
